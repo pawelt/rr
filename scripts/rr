@@ -1,0 +1,64 @@
+#!/usr/bin/env sh
+set -eo pipefail
+
+# rr v1 https://github.com/pawelt/rr
+
+rr_each_script() { # $1: task to run for each rr-* script  $2: param to pass to $1 task
+  scripts=$(ls $RR_SCRIPT_NAME-* 2>/dev/null || true)
+  for script in $scripts; do "$1" "$script" "$2"; done
+}
+
+rr_list_tasks() { # $1: path to a script with tasks  $2: task name filter
+  local re_rr="([()]{2} *{ *)*#: *"
+  local awk_init="BEGIN { FS = \"$re_rr\" } /$2.*$re_rr/"
+  local awk_loop='
+    printf "\x1b[37m%s\x1b[0m  \x1b[36m%-12s\x1b[0m %s\n",
+      $1 ? "" : $2,
+      $1 ? $1 : "",
+      $1 && $2 ? $2 : ""
+  '
+  awk "$awk_init { $awk_loop }" $1
+}
+
+rr_print_usage() {
+  printf "\x1b[32mUsage:  $RR_SCRIPT_NAME  \x1b[36mtask\x1b[32m  [args...]\x1b[0m\n"
+}
+
+rr_print_tasks() { # $1: task name filter
+  local filter=""
+  [[ -n $1 ]] && filter=" matching \x1b[36m$1\x1b[0m"
+  printf "\x1b[32mTasks$filter\x1b[0m:\n"
+
+  [[ -z $filter ]] && printf "  \x1b[36m%-12s\x1b[0m %s\n" "t [filter]" "list tasks [task name filter]"
+  rr_each_script rr_list_tasks $1
+}
+
+rr_print_not_found() { # $1: missing task name
+  printf "\x1b[31mError:  task \x1b[36m $1 \x1b[31m not found\x1b[0m  (for task list, run rr with no args)\n"
+}
+
+rr_main() {
+  export RR_SCRIPT_NAME="${BASH_SOURCE[0]}"
+  export RR_SCRIPT_PATH="$( cd "$(dirname $RR_SCRIPT_NAME)" >/dev/null && pwd )"
+  export RR_BASE_PATH="$( cd "$(dirname $RR_SCRIPT_NAME)/.." >/dev/null && pwd )"
+
+  rr_each_script source
+
+  local task=$1
+  [[ -n $task ]] && shift
+
+  if [[ $task == "" || $task == "t" ]]; then
+    rr_print_usage
+    rr_print_tasks "$1"
+  elif [[ $(declare -f $task) == "" ]]; then
+    rr_print_usage
+    rr_print_not_found $task
+    rr_print_tasks $task
+    exit 1
+  else
+    cd $RR_BASE_PATH
+    $task "$@"
+  fi
+}
+
+rr_main "$@"
