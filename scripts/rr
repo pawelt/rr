@@ -1,7 +1,24 @@
 #!/usr/bin/env sh
 set -eo pipefail
 
-# rr v1 https://github.com/pawelt/rr
+# rr v1.1 https://github.com/pawelt/rr
+
+#
+# utilities
+#
+
+rr_parallel() { #: $*: list of tasks to run in parallel
+  # killing rr process kills all tasks running in parallel
+  node -e "
+    const { spawn } = require('child_process');
+    const tasks = ['$1', '$2', '$3', '$4', '$5', '$6'].filter(Boolean)
+      .map((task) => spawn('$RR_SCRIPT_NAME ' + task, { shell: true, stdio: 'inherit' }));
+  "
+}
+
+#
+# internal
+#
 
 rr_each_script() { # $1: task to run for each rr-* script  $2: param to pass to $1 task
   scripts=$(ls $RR_SCRIPT_NAME-* 2>/dev/null || true)
@@ -29,7 +46,10 @@ rr_print_tasks() { # $1: task name filter
   [[ -n $1 ]] && filter=" matching \x1b[36m$1\x1b[0m"
   printf "\x1b[32mTasks$filter\x1b[0m:\n"
 
-  [[ -z $filter ]] && printf "  \x1b[36m%-12s\x1b[0m %s\n" "t [filter]" "list tasks [task name filter]"
+  if [[ -z $filter ]]; then
+    printf "  \x1b[36m%-12s\x1b[0m %s\n" "t [filter]" "list tasks [task name filter]"
+    printf "  \x1b[36m%-12s\x1b[0m %s\n" "p [a b...]" "run tasks a and b in parallel"
+  fi
   rr_each_script rr_list_tasks $1
 }
 
@@ -47,9 +67,11 @@ rr_main() {
   local task=$1
   [[ -n $task ]] && shift
 
-  if [[ $task == "" || $task == "t" ]]; then
+  if [[ $task == "t" || $task == "" ]]; then
     rr_print_usage
     rr_print_tasks "$1"
+  elif [[ $task == "p" ]]; then
+    rr_parallel "$@"
   elif [[ $(declare -f $task) == "" ]]; then
     rr_print_usage
     rr_print_not_found $task
