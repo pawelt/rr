@@ -38,7 +38,7 @@ rr_list_tasks() { # $1: path to a script with tasks  $2: task name filter
 }
 
 rr_print_usage() {
-  printf "\x1b[32mUsage:  $RR_SCRIPT_NAME  \x1b[36mtask\x1b[32m  [args...]\x1b[0m\n"
+  printf "\x1b[32mUsage:  $RR_SCRIPT_REL  \x1b[36mtask\x1b[32m  [args...]\x1b[0m\n"
 }
 
 rr_print_tasks() { # $1: task name filter
@@ -58,9 +58,10 @@ rr_print_not_found() { # $1: missing task name
 }
 
 rr_main() {
-  export RR_SCRIPT_NAME="${BASH_SOURCE[0]}"
-  export RR_SCRIPT_PATH="$( cd "$(dirname $RR_SCRIPT_NAME)" >/dev/null && pwd )"
-  export RR_BASE_PATH="$( cd "$(dirname $RR_SCRIPT_NAME)/.." >/dev/null && pwd )"
+  export RR_SCRIPT_REL="${BASH_SOURCE[0]}"
+  export RR_SCRIPT_PATH="$( cd "$(dirname $RR_SCRIPT_REL)" >/dev/null && pwd )"
+  export RR_SCRIPT_NAME="$RR_SCRIPT_PATH/$(basename $RR_SCRIPT_REL)"
+  export RR_BASE_PATH="$( cd "$(dirname $RR_SCRIPT_REL)/.." >/dev/null && pwd )"
 
   rr_each_script source
 
