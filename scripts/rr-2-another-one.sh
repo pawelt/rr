@@ -1,4 +1,5 @@
-vars() { #: show predefined rr env vars
+#: show predefined rr env vars
+vars() {
     echo "Predefined rr vars:"
     echo
     echo "  RR_BASE_PATH    =  $RR_BASE_PATH"

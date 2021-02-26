@@ -1,56 +1,80 @@
 #!/usr/bin/env sh
+
+# rr v2 https://github.com/pawelt/rr
+
 set -eo pipefail
 
-# rr v1.1 https://github.com/pawelt/rr
-
-#
-# utilities
-#
-
-rr_parallel() { #: $*: list of tasks to run in parallel
-  # killing rr process kills all tasks running in parallel
-  node -e "
-    const { spawn } = require('child_process');
-    const tasks = ['$1', '$2', '$3', '$4', '$5', '$6'].filter(Boolean)
-      .map((task) => spawn('$RR_SCRIPT_NAME ' + task, { shell: true, stdio: 'inherit' }));
-  "
+rr_parallel() { # $*: list of tasks to run in parallel
+  trap 'kill 0' EXIT
+  for task in "$@"; do eval "$task" & done
+  for task in "$@"; do wait ; done
+  trap - EXIT
 }
-
-#
-# internal
-#
 
 rr_each_script() { # $1: task to run for each rr-* script  $2: param to pass to $1 task
   scripts=$(ls $RR_SCRIPT_NAME-* 2>/dev/null || true)
   for script in $scripts; do "$1" "$script" "$2"; done
 }
 
-rr_list_tasks() { # $1: path to a script with tasks  $2: task name filter
-  local re_rr="([()]{2} *{ *)*#: *"
-  local awk_init="BEGIN { FS = \"$re_rr\" } /$2.*$re_rr/"
-  local awk_loop='
-    printf "\x1b[37m%s\x1b[0m  \x1b[36m%-12s\x1b[0m %s\n",
-      $1 ? "" : $2,
-      $1 ? $1 : "",
-      $1 && $2 ? $2 : ""
+rr_print_tasks() { # $1: path to a script with tasks  $2: task name filter
+  local AWK_SCRIPT='
+    function parse_line(line) {
+      line = gensub(/#: */, "#:", 1, line)
+      return gensub(/ *\(\).+/, "", 1, line)
+    }
+
+    function print_task_info(task, info) {
+      if (task != "") {
+        info = gensub(/#:/, "\\1", 1, info)
+        info = gensub(/#:/, TASK_GAP "\\1", "g", info)
+        printf "\x1b[36m" TASK_PAD "\x1b[0m%s\n", "  " task, info
+      } else {
+        printf "\x1b[37m%s\x1b[0m\n", gensub(/#:/, "\\1", "g", info)
+      }
+    }
+
+    BEGIN {
+      TASK_PAD = "%-" RR_MAX_TASK_LEN "s"
+      TASK_GAP = sprintf(TASK_PAD, "")
+      if (PRINT_BUILT_IN == 1) {
+        print_task_info("t [filter]", "list tasks [task name filter]")
+        print_task_info("p [a b...]", "run tasks a and b in parallel")
+      }
+    } /^#:/ {
+      info = parse_line($0)
+      while (getline line > 0) {
+        if (line ~ /^#:/) {
+          info = info "\n" parse_line(line)
+        } else {
+          task = line ~ /^[a-zA-Z0-9_-]+ *\(\) *\{/ && line ~ FILTER ?
+            parse_line(line) :
+            ""
+          break
+        }
+      }
+      (FILTER == "" || task != "") && print_task_info(task, info)
+    }
   '
-  awk "$awk_init { $awk_loop }" $1
+
+  FILE=$([ -z $1 ] && echo "" || cat $1)
+  PRINT_BUILT_IN=$([ -z $1 ] && echo 1 || echo 0)
+  FILTER=$2
+
+  echo "$FILE" | awk                    \
+    -v PRINT_BUILT_IN=$PRINT_BUILT_IN   \
+    -v FILTER=$FILTER                   \
+    -v RR_MAX_TASK_LEN=$RR_MAX_TASK_LEN \
+    "$AWK_SCRIPT"
 }
 
-rr_print_usage() {
+rr_print_usage() { # $1: task name filter
   printf "\x1b[32mUsage:  $RR_SCRIPT_REL  \x1b[36mtask\x1b[32m  [args...]\x1b[0m\n"
-}
 
-rr_print_tasks() { # $1: task name filter
-  local filter=""
-  [[ -n $1 ]] && filter=" matching \x1b[36m$1\x1b[0m"
-  printf "\x1b[32mTasks$filter\x1b[0m:\n"
+  [[ -n $1 ]] && filter_str=" matching \x1b[36m$1\x1b[0m"
+  printf "\x1b[32mTasks$filter_str\x1b[0m:\n"
 
-  if [[ -z $filter ]]; then
-    printf "  \x1b[36m%-12s\x1b[0m %s\n" "t [filter]" "list tasks [task name filter]"
-    printf "  \x1b[36m%-12s\x1b[0m %s\n" "p [a b...]" "run tasks a and b in parallel"
-  fi
-  rr_each_script rr_list_tasks $1
+  [[ -z $1 ]] && rr_print_tasks
+  rr_each_script rr_print_tasks $1
 }
 
 rr_print_not_found() { # $1: missing task name
@@ -58,6 +82,8 @@ rr_print_not_found() { # $1: missing task name
 }
 
 rr_main() {
+  export RR_MAX_TASK_LEN=14 # tweak this in your first script if you use long task names
+
   export RR_SCRIPT_REL="${BASH_SOURCE[0]}"
   export RR_SCRIPT_PATH="$( cd "$(dirname $RR_SCRIPT_REL)" >/dev/null && pwd )"
   export RR_SCRIPT_NAME="$RR_SCRIPT_PATH/$(basename $RR_SCRIPT_REL)"
@@ -69,14 +95,12 @@ rr_main() {
   [[ -n $task ]] && shift
 
   if [[ $task == "t" || $task == "" ]]; then
-    rr_print_usage
-    rr_print_tasks "$1"
+    rr_print_usage "$1"
   elif [[ $task == "p" ]]; then
     rr_parallel "$@"
-  elif [[ $(declare -f $task) == "" ]]; then
-    rr_print_usage
+  elif [[ $(declare -f $task 2>/dev/null) == "" ]]; then
     rr_print_not_found $task
-    rr_print_tasks $task
+    rr_print_usage $task
     exit 1
   else
     cd $RR_BASE_PATH

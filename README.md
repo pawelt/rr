@@ -6,17 +6,16 @@ Tiny, shell-based, stack-agnostic task runner.
 
 1. copy `scripts` folder to your project root folder
 2. make sure `rr` script executable: `chmod +x ./scripts/rr`
-3. `nodejs` is required for parallel script execution (`./scripts/rr p` and `rr_parallel` function)
 
 ## Usage
+
+**See `./scripts/rr-*` files for usage examples.**
 
 - `./script/rr` - show list of available tasks
 - `./scripts/rr hi Jane` - run `hi` task with `Jane` as argument
 - `./scripts/rr p t1 't2 42'` - run `t1` and `t2` tasks in parallel
 
 `rr` exits with error code returned by the executed task. For parallel execution, exit code is always `0`.
-
-Have a look at `./scripts/rr-*` files for more examples.
 
 ## Recommended global helper
 
@@ -36,14 +35,15 @@ and then you can simply: `rr hi Jane`
 
 ## Parallel task execution
 
-This is mostly useful for running multiple development servers in a single terminal.
+This is mostly useful for running multiple development servers in a single terminal (like `docker-compose`).
 
 To run parallel tasks from command line: `./scripts/rr p t1 't2 42' t3`
 
 To run parallel tasks from another task, define a master task:
 
 ```
-para() { #: run t1 t2 t3 in parallel
+#: run t1 t2 t3 in parallel
+para() {
   rr_parallel t1 't2 42' t3
 }
 ```
@@ -93,7 +93,7 @@ which you can call like this: `./tasks.sh hi Jane`.
 
 However, `rr` comes with a few benefits:
 
-- nicely formatted list of available tasks
+- nicely formatted and automatically maintained list of available tasks
 - run tasks in parallel
 - easy way to organize your tasks into multiple files
 
