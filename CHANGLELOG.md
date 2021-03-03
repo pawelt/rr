@@ -2,6 +2,10 @@
 
 Release history
 
+### v2.1 - 03.03.2022
+
+- **[CHG]** tweak section comment printing
+
 ### v2.0 - 26.02.2022
 
 - **[CHG]** format change

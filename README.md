@@ -4,8 +4,18 @@ Tiny, shell-based, stack-agnostic task runner.
 
 ## Installation
 
-1. copy `scripts` folder to your project root folder
+1. copy `./scripts/rr` to your project root folder
 2. make sure `rr` script executable: `chmod +x ./scripts/rr`
+
+Or just run this from your project root:
+
+```
+mkdir -p scripts && \
+  pushd scripts && \
+  curl -O https://raw.githubusercontent.com/pawelt/rr/master/scripts/rr && \
+  chmod +x rr && \
+  popd
+```
 
 ## Usage
 

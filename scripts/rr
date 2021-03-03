@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# rr v2 https://github.com/pawelt/rr
+# rr v2.1 https://github.com/pawelt/rr
 
 set -eo pipefail
 
@@ -25,11 +25,13 @@ rr_print_tasks() { # $1: path to a script with tasks  $2: task name filter
 
     function print_task_info(task, info) {
       if (task != "") {
-        info = gensub(/#:/, "\\1", 1, info)
-        info = gensub(/#:/, TASK_GAP "\\1", "g", info)
+        info = gensub(/#: */, "", 1, info)
+        info = gensub(/#:/, TASK_GAP "", "g", info)
         printf "\x1b[36m" TASK_PAD "\x1b[0m%s\n", "  " task, info
       } else {
-        printf "\x1b[37m%s\x1b[0m\n", gensub(/#:/, "\\1", "g", info)
+        info = gensub(/#: */, "", "g", info)
+        info = gensub(/([^\n]+)/, " [ \\1 ]", "g", info)
+        printf "\x1b[37m%s \x1b[0m\n", info
       }
     }
 
