@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# rr v2.1 https://github.com/pawelt/rr
+# rr v2.2 https://github.com/pawelt/rr
 
 set -eo pipefail
 
@@ -86,7 +86,7 @@ rr_print_not_found() { # $1: missing task name
 rr_main() {
   export RR_MAX_TASK_LEN=14 # tweak this in your first script if you use long task names
 
-  export RR_SCRIPT_REL="${BASH_SOURCE[0]}"
+  export RR_SCRIPT_REL="$(readlink $0 || echo $0)"
   export RR_SCRIPT_PATH="$( cd "$(dirname $RR_SCRIPT_REL)" >/dev/null && pwd )"
   export RR_SCRIPT_NAME="$RR_SCRIPT_PATH/$(basename $RR_SCRIPT_REL)"
   export RR_BASE_PATH="$( cd "$(dirname $RR_SCRIPT_REL)/.." >/dev/null && pwd )"

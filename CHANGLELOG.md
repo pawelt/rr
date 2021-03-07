@@ -2,6 +2,10 @@
 
 Release history
 
+### v2.2 - 07.03.2022
+
+- **[ADD]** support for symlinked rr
+
 ### v2.1 - 03.03.2022
 
 - **[CHG]** tweak section comment printing
