@@ -2,7 +2,11 @@
 
 Release history
 
-### v2.2 - 07.03.2022
+### v2.3 - 07.03.2022
+
+- **[FIX]** macos awk compatibility
+
+### v2.2 - 06.03.2022
 
 - **[ADD]** support for symlinked rr
 

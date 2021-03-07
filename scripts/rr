@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# rr v2.2 https://github.com/pawelt/rr
+# rr v2.3 https://github.com/pawelt/rr
 
 set -eo pipefail
 
@@ -19,18 +19,19 @@ rr_each_script() { # $1: task to run for each rr-* script  $2: param to pass to 
 rr_print_tasks() { # $1: path to a script with tasks  $2: task name filter
   local AWK_SCRIPT='
     function parse_line(line) {
-      line = gensub(/#: */, "#:", 1, line)
-      return gensub(/ *\(\).+/, "", 1, line)
+      sub(/#: */, "#:", line)
+      sub(/ *\(\).+/, "", line)
+      return line
     }
 
     function print_task_info(task, info) {
       if (task != "") {
-        info = gensub(/#: */, "", 1, info)
-        info = gensub(/#:/, TASK_GAP "", "g", info)
+        sub(/#: */, "", info)
+        gsub(/#:/, TASK_GAP "", info)
         printf "\x1b[36m" TASK_PAD "\x1b[0m%s\n", "  " task, info
       } else {
-        info = gensub(/#: */, "", "g", info)
-        info = gensub(/([^\n]+)/, " [ \\1 ]", "g", info)
+        gsub(/#: */, "", info)
+        gsub(/([^\n]+)/, " [ & ]", info)
         printf "\x1b[37m%s \x1b[0m\n", info
       }
     }
@@ -48,9 +49,7 @@ rr_print_tasks() { # $1: path to a script with tasks  $2: task name filter
         if (line ~ /^#:/) {
           info = info "\n" parse_line(line)
         } else {
-          task = line ~ /^[a-zA-Z0-9_-]+ *\(\) *\{/ && line ~ FILTER ?
-            parse_line(line) :
-            ""
+          task = line ~ /^[a-zA-Z0-9_-]+ *\(\) *\{/ && line ~ FILTER ? parse_line(line) : ""
           break
         }
       }
