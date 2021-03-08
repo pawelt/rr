@@ -2,6 +2,10 @@
 
 Release history
 
+### v3.0 - 07.03.2022
+
+- **[CHG]** make bash an official requirement
+
 ### v2.3 - 07.03.2022
 
 - **[FIX]** macos awk compatibility
