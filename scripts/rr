@@ -11,6 +11,17 @@ rr_parallel() { # $*: list of tasks to run in parallel
   trap - EXIT
 }
 
+rr_parallelc() { # $*: list of tasks to run in parallel with colored prefixes
+  trap 'kill 0' EXIT
+  for task in "$@"; do
+    t=$task
+    c=$(($c + 1))
+    eval "$task 2>&1 | sed -E 's/(.+)/\x1b[3${c}m[$t]\x1b[0m \1/g'" &
+  done
+  for task in "$@"; do wait ; done
+  trap - EXIT
+}
+
 rr_each_script() { # $1: task to run for each rr-* script  $2: param to pass to $1 task
   scripts=$(ls $RR_SCRIPT_NAME-* 2>/dev/null || true)
   for script in $scripts; do "$1" "$script" "$2"; done
@@ -97,6 +108,8 @@ rr_main() {
 
   if [[ $task == "t" || $task == "" ]]; then
     rr_print_usage "$1"
+  elif [[ $task == "pc" ]]; then
+    rr_parallelc "$@"
   elif [[ $task == "p" ]]; then
     rr_parallel "$@"
   elif [[ $(declare -f $task 2>/dev/null) == "" ]]; then

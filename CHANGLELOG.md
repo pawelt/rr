@@ -2,6 +2,10 @@
 
 Release history
 
+### v3.1 - 14.04.2022
+
+- **[ADD]** `rr_parallelc` (a variant of `rr_parallel` with colored prefixes)
+
 ### v3.0 - 07.03.2022
 
 - **[CHG]** make bash an official requirement
